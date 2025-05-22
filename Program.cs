@@ -5,6 +5,7 @@ using System.Diagnostics;
 using System.Threading.Tasks;
 using System.IO.Compression;
 using System.Collections.Generic;
+using System.Text.RegularExpressions;
 
 namespace HaxeInstaller
 {
@@ -22,10 +23,7 @@ namespace HaxeInstaller
                 ["actuate"] = "1.9.0",
                 ["bits"] = "1.3.0",
                 ["box2d"] = "1.2.3",
-                //["discord_rpc"] = "git", // TODO: ADD GIT SUPPORT LMAO
                 ["flixel-addons"] = "3.3.2",
-                //["flixel-depth"] = "git", // TODO: ADD GIT SUPPORT LMAO
-                //["flixel-studio"] = "git", // TODO: ADD GIT SUPPORT LMAO
                 ["flixel-text-input"] = "2.0.2",
                 ["flixel-tools"] = "1.5.1",
                 ["flixel-ui"] = "2.6.4",
@@ -47,10 +45,6 @@ namespace HaxeInstaller
                 ["polymod"] = "1.3.1",
                 ["thx.core"] = "0.44.0"
             },
-            ["Funkin' Latest"] = new Dictionary<string, string>
-            {
-                // WILL DO AFTER GETTING GIT SUPPORT WORKING
-            },
             ["Funkin' Legacy (0.2x)"] = new Dictionary<string, string>
             {
                 ["actuate"] = "1.9.0",
@@ -63,14 +57,12 @@ namespace HaxeInstaller
                 ["hxcpp"] = "4.3.2",
                 ["lime-samples"] = "7.0.0",
                 ["lime"] = "8.2.2",
-                ["lime-samples"] = "7.0.0",
-                ["lime"] = "8.2.2",
                 ["newgrounds"] = "1.3.0",
                 ["openfl-samples"] = "8.7.0",
                 ["openfl"] = "9.4.1",
                 ["polymod"] = "1.3.1",
                 ["thx.core"] = "0.44.0"
-            },
+            }
         };
 
         private static async Task<bool> IsHaxeInstalled()
@@ -252,7 +244,8 @@ namespace HaxeInstaller
 
             foreach (var lib in libs)
             {
-                Console.WriteLine($"Installing {lib.Key} version {lib.Value}...");
+                Console.WriteLine($"\nInstalling {lib.Key} version {lib.Value}...");
+                
                 var startInfo = new ProcessStartInfo
                 {
                     FileName = "haxelib",
@@ -270,7 +263,30 @@ namespace HaxeInstaller
                         throw new Exception($"Failed to start haxelib process for {lib.Key}");
                     }
 
-                    var output = await process.StandardOutput.ReadToEndAsync();
+                    process.OutputDataReceived += (sender, e) =>
+                    {
+                        if (e.Data != null)
+                        {
+                            if (e.Data.Contains("Downloading"))
+                            {
+                                Console.Write("\rDownloading... [          ] 0%");
+                            }
+                            else if (e.Data.Contains("Download complete"))
+                            {
+                                Console.Write("\rDownload complete! [==========] 100%\n");
+                            }
+                            else if (e.Data.Contains("Installing"))
+                            {
+                                Console.Write("\rInstalling... [          ] 0%");
+                            }
+                            else if (e.Data.Contains("Done"))
+                            {
+                                Console.Write("\rInstallation complete! [==========] 100%\n");
+                            }
+                        }
+                    };
+                    process.BeginOutputReadLine();
+
                     var error = await process.StandardError.ReadToEndAsync();
                     await process.WaitForExitAsync();
 
